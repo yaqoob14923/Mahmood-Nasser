@@ -1,0 +1,105 @@
+import cv2
+import numpy as np
+import pydicom as PDCM  
+dataset = PDCM.read_file('/kaggle/input/siim-medical-images/dicom_dir/ID_0000_AGE_0060_CONTRAST_1_CT.dcm')
+
+print(dataset.pixel_array)
+print(dataset.pixel_array.shape)
+import matplotlib.pyplot as plt
+plt.imshow(dataset.pixel_array , cmap='gray')
+plt.show()
+print(dataset)
+path = '/kaggle/input/siim-medical-images/dicom_dir'
+import os
+import cv2
+import numpy as np
+import pydicom as dicom
+
+images = []
+for file in os.listdir(path):
+    f = dicom.read_file(os.path.join(path,file)).pixel_array
+    fr = cv2.resize(f , (256,256))
+    images.append(fr)
+X = np.array(images)
+X = X.reshape(100,256,256,1)
+X.shape
+labels = []
+for file in os.listdir(path):
+    labels.append(file.split('_')[-2])
+    
+Y = np.array(labels)
+Y.shape
+from sklearn.model_selection import train_test_split
+xtrain,xtest,ytrain,ytest = train_test_split(X,Y,test_size=0.2)
+xtrain = xtrain/xtrain.max()
+xtest = xtest/xtest.max()
+xtrain.shape
+import tensorflow as tf
+
+ytrain = tf.keras.utils.to_categorical(ytrain)
+ytest = tf.keras.utils.to_categorical(ytest)
+from keras import layers, models, regularizers
+model = models.Sequential()
+
+model.add(layers.Conv2D(64 ,(3,3) , padding = 'same' , kernel_regularizer=regularizers.l2(0.0001) , input_shape = (256,256,1)))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(64 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.MaxPooling2D(pool_size=(2,2)))
+
+model.add(layers.Conv2D(128 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(128 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.MaxPooling2D(pool_size=(2,2)))
+
+model.add(layers.Conv2D(256 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(256 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(256 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.MaxPooling2D(pool_size=(2,2)))
+
+model.add(layers.Conv2D(512 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(512 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(512 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.MaxPooling2D(pool_size=(2,2)))
+
+model.add(layers.Conv2D(512 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(512 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.Conv2D(512 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.MaxPooling2D(pool_size=(2,2)))
+
+
+model.add(layers.Conv2D(4096 ,(3,3) , kernel_regularizer=regularizers.l2(0.0001) , padding = 'same'))
+model.add(layers.Activation('relu'))
+model.add(layers.MaxPooling2D(pool_size=(2,2)))
+
+model.add(layers.Flatten())
+
+model.add(layers.Dense(2, activation='sigmoid') )
+model.summary()
+import tensorflow as tf
+
+sgd = tf.keras.optimizers.SGD(0.001)
+model.compile(loss='categorical_crossentropy' , optimizer=sgd , metrics=['accuracy'])
+from keras.preprocessing.image import ImageDataGenerator
+datagen = ImageDataGenerator(rotation_range = 40,
+                             width_shift_range=0.1,
+                             height_shift_range=0.1,
+                             shear_range = 0.2,
+                             zoom_range = 0.2,
+                             horizontal_flip = True,
+                             brightness_range = (0.5, 1.5))
+model.fit(datagen.flow(xtrain,ytrain,batch_size=10),
+         epochs=100,
+         validation_data=datagen.flow(xtest,ytest))
+model.evaluate(datagen.flow(xtrain,ytrain))
+model.evaluate(datagen.flow(xtest,ytest))
